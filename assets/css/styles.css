@@ -5,10 +5,10 @@
   --text:        #141414;
   --muted:       #57534e;
   --line:        rgba(20, 20, 20, 0.09);
-  --shadow:      0 22px 70px rgba(20, 20, 20, 0.08);
+  --shadow:      6px 6px 18px rgba(20, 20, 20, 0.07), -3px -3px 10px rgba(255,255,255,0.88), inset 0 1px 0 rgba(255,255,255,0.75);
   --shadow-soft: 0 10px 30px rgba(20, 20, 20, 0.05);
   --radius:      26px;
-  --nav-height:  64px; /* JS overwrites this after render */
+  --nav-height:  64px;
   --max-width:   1120px;
 }
 
@@ -16,17 +16,37 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
-  /* scroll-padding-top is NOT set here — JS sets --nav-height and CSS uses it
-     via scroll-margin-top on each section. Using both scroll-padding and
-     scroll-margin causes double-offsetting on anchor clicks. */
   scroll-behavior: smooth;
   background: var(--bg);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20,20,20,0) transparent;
+  transition: scrollbar-color 0.6s ease;
+}
+
+html.is-scrolling {
+  scrollbar-color: rgba(20,20,20,0.2) transparent;
+  transition: scrollbar-color 0.1s ease;
+}
+
+/* Webkit floating scrollbar — no track, just a floating thumb */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(20,20,20,0);
+  border-radius: 999px;
+  transition: background 0.6s ease;
+}
+html.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(20,20,20,0.2);
+  transition: background 0.1s ease;
 }
 
 body {
   margin: 0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Noise texture layer — subtle grain so glassmorphic blur has something to refract */
   background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.038'/%3E%3C/svg%3E"),
     radial-gradient(circle at top, rgba(255, 255, 255, 0.92), transparent 40%),
     linear-gradient(180deg, #fbfaf8 0%, #f2eee8 100%);
   color: var(--text);
@@ -51,12 +71,30 @@ a { color: inherit; text-decoration: none; }
 }
 .skip-link:focus { left: 12px; }
 
+/* ─── Copy toast ─────────────────────────────────────────────────────────── */
+.copy-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: rgba(20,20,20,0.88);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+}
+.copy-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ─── Sticky nav ─────────────────────────────────────────────────────────── */
-/* Sticky lives on #header-slot (the wrapper), NOT on .site-header itself.
-   A sticky element can only stick within its parent's bounds. If the parent
-   is exactly the same height as the sticky child it immediately leaves the
-   container and stops sticking. The slot spans the rest of the document, so
-   the header has room to stick the whole way down. */
 #header-slot {
   position: sticky;
   top: 0;
@@ -64,15 +102,15 @@ a { color: inherit; text-decoration: none; }
 }
 
 .site-header {
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  background: rgba(246, 243, 238, 0.84);
+  /* Reduced blur from 22px → 8px so the frosted glass effect is visible
+     against the noise texture beneath */
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  background: rgba(246, 243, 238, 0.78);
   border-bottom: 1px solid rgba(20, 20, 20, 0.06);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 
-/* Height is driven by padding only — never by a CSS variable — so JS can
-   measure it freely without creating a read/write feedback loop. */
 .header-inner {
   max-width: var(--max-width);
   margin: 0 auto;
@@ -204,7 +242,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
 }
 
-/* ─── Hero (outside sticky header, scrolls normally) ────────────────────── */
+/* ─── Hero ───────────────────────────────────────────────────────────────── */
 .hero-section {
   max-width: var(--max-width);
   margin: 20px auto 0;
@@ -248,19 +286,6 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 
-.hero-kicker {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(20, 20, 20, 0.04);
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin-bottom: 18px;
-  letter-spacing: -0.01em;
-}
-
 .hero-card h2 {
   margin: 0 0 14px;
   font-size: clamp(2rem, 5vw, 4.2rem);
@@ -284,6 +309,7 @@ a { color: inherit; text-decoration: none; }
   gap: 10px;
 }
 
+/* ─── Pills ──────────────────────────────────────────────────────────────── */
 .pill {
   display: inline-flex;
   align-items: center;
@@ -295,12 +321,48 @@ a { color: inherit; text-decoration: none; }
   color: var(--text);
   font-size: 0.9rem;
   box-shadow: 0 6px 14px rgba(20, 20, 20, 0.04);
+  /* Reset button styles */
+  font-family: inherit;
+  cursor: default;
 }
 
 .pill span {
   color: var(--muted);
   font-weight: 500;
   font-size: 0.82rem;
+}
+
+/* Interactive pills: email (copy) and cert (link) */
+.pill-interactive {
+  cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  text-decoration: none;
+}
+
+.pill-interactive:hover {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 20px rgba(20, 20, 20, 0.09);
+  transform: translateY(-1px);
+}
+
+.pill-interactive:focus-visible {
+  outline: 2px solid rgba(20,20,20,0.3);
+  outline-offset: 2px;
+}
+
+.pill-interactive:active {
+  transform: translateY(0);
+}
+
+/* Small copy icon that appears on the email pill */
+.pill-interactive .pill-icon {
+  width: 13px;
+  height: 13px;
+  stroke: var(--muted);
+  stroke-width: 1.8;
+  fill: none;
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 
 /* ─── Page shell ─────────────────────────────────────────────────────────── */
@@ -313,18 +375,17 @@ a { color: inherit; text-decoration: none; }
 /* ─── Sections ───────────────────────────────────────────────────────────── */
 .section { margin-top: 32px; padding-top: 8px; }
 
-/* scroll-margin-top is the single mechanism for anchor offset.
-   It equals navH + 24px gap. JS keeps --nav-height accurate.
-   No scroll-padding-top anywhere — using both causes double-offset. */
 .card-anchor {
   scroll-margin-top: calc(var(--nav-height) + 24px);
 }
 
+/* Indent heading text to align with card content (cards have 26px internal padding) */
 .section-heading {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-bottom: 16px;
+  padding-left: 26px;
 }
 
 .section-heading h2 {
@@ -389,11 +450,37 @@ a { color: inherit; text-decoration: none; }
 
 /* ─── Grids ──────────────────────────────────────────────────────────────── */
 .grid { display: grid; gap: 16px; }
-.cards-grid  { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.skills-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 
-.skill-card strong { display: block; margin-bottom: 10px; font-size: 1rem; }
-.skill-card ul { margin: 0; padding-left: 18px; color: var(--muted); }
+/* Fixed 2x2 for the 4 project cards */
+.cards-grid { grid-template-columns: repeat(2, 1fr); }
+
+/* 4 skill cards in a row on desktop */
+.skills-grid { grid-template-columns: repeat(4, 1fr); }
+
+/* ─── Skill pills ────────────────────────────────────────────────────────── */
+.skill-card strong {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.skill-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-pill {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(20,20,20,0.04);
+  border: 1px solid rgba(20,20,20,0.07);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
 
 /* ─── Footer ─────────────────────────────────────────────────────────────── */
 .site-footer {
@@ -416,6 +503,11 @@ a { color: inherit; text-decoration: none; }
 .footer-card a:hover { color: var(--text); }
 
 /* ─── Mobile ─────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Skills drop to 2 columns before they get too narrow */
+  .skills-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 720px) {
   .nav { display: none; }
   .menu-toggle { display: flex; }
@@ -423,7 +515,6 @@ a { color: inherit; text-decoration: none; }
 
   .hero-card { padding: 24px 22px; border-radius: 24px; }
   .hero-card h2 { font-size: clamp(1.9rem, 8vw, 2.8rem); }
-  .hero-kicker { font-size: 0.8rem; }
   .hero-meta { gap: 8px; }
   .pill { font-size: 0.85rem; padding: 8px 12px; }
 
@@ -434,6 +525,7 @@ a { color: inherit; text-decoration: none; }
   .site-footer { padding: 0 16px 32px; }
   .section { margin-top: 24px; }
   .card, .job, .education-item { padding: 18px 20px; }
+  .section-heading { padding-left: 20px; }
 }
 
 @media (max-width: 480px) {
@@ -441,5 +533,5 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav a, .nav-drawer a { transition: none; transform: none; }
+  .nav a, .nav-drawer a, .pill-interactive { transition: none; transform: none; }
 }
