@@ -42,7 +42,6 @@ function renderNav() {
           <a href="#projects">Projects</a>
           <a href="#skills">Skills</a>
           <a href="#education">Education</a>
-          <a href="mailto:${escapeHtml(siteConfig.email)}">Email</a>
         </nav>
         <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Toggle menu">
           <svg class="icon-open"  viewBox="0 0 18 18"><line x1="2" y1="4"  x2="16" y2="4" /><line x1="2" y1="9"  x2="16" y2="9" /><line x1="2" y1="14" x2="16" y2="14"/></svg>
@@ -55,7 +54,6 @@ function renderNav() {
         <a href="#projects">Projects</a>
         <a href="#skills">Skills</a>
         <a href="#education">Education</a>
-        <a href="mailto:${escapeHtml(siteConfig.email)}">Email</a>
       </nav>
     </header>
   `;
@@ -66,13 +64,17 @@ function renderHero() {
   document.getElementById("hero-slot").innerHTML = `
     <section class="hero-section" aria-label="Introduction">
       <div class="hero-card">
-        <div class="hero-kicker">DevSecOps &middot; Secure systems &middot; Denver, CO</div>
         <h2>${escapeHtml(siteConfig.role)}</h2>
         <p>${escapeHtml(siteConfig.intro)}</p>
         <div class="hero-meta">
-          <div class="pill"><span>Email</span> ${escapeHtml(siteConfig.email)}</div>
+          <a href="mailto:${escapeHtml(siteConfig.email)}" class="pill">
+            <span>Email</span> ${escapeHtml(siteConfig.email)}
+          </a>
           <div class="pill"><span>Location</span> ${escapeHtml(siteConfig.location)}</div>
           <div class="pill"><span>Clearance</span> ${escapeHtml(siteConfig.clearance)}</div>
+          <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/E54S9W85M2F4QVWC" target="_blank" rel="noopener noreferrer" class="pill">
+            <span>Cert</span> CompTIA Security+
+          </a>
         </div>
       </div>
     </section>
@@ -97,8 +99,7 @@ function setupMobileMenu() {
 
 /* ─── Content renderers ──────────────────────────────────────────────────── */
 function renderAbout() {
-  document.getElementById("about-text").textContent =
-    "I build and support secure infrastructure with a strong preference for clean automation, reliable systems, and practical implementation. Current experience centers on AWS GovCloud IL4 environments, Terraform, Ansible, and production operations in support of a secure ground battle management system.";
+  document.getElementById("about-text").textContent = siteConfig.about;
 }
 
 function renderExperience() {
