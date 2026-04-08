@@ -8,26 +8,55 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-/* ─── Shared header offset ───────────────────────────────────────────────── */
-/* Single source of truth for all scroll-related offsets.
-   Must match CSS: scroll-margin-top: calc(var(--nav-height) + 20px) */
-function getHeaderOffset() {
-  const header = document.querySelector(".header-inner");
-  const navHeight = header?.offsetHeight ?? 64;
-  const extraSpacing = 20;
-  return navHeight + extraSpacing;
-}
-
 /* ─── Nav height ─────────────────────────────────────────────────────────── */
-/* Measures .header-inner (not full header) to avoid growth from mobile drawer.
-   Only updates --nav-height. Offset math is handled via getHeaderOffset(). */
 function updateNavHeight() {
   const inner = document.querySelector(".header-inner");
   if (!inner) return;
   document.documentElement.style.setProperty("--nav-height", `${inner.offsetHeight}px`);
 }
 
-/* ─── Render: nav bar only ───────────────────────────────────────────────── */
+/* ─── Copy to clipboard with toast ──────────────────────────────────────── */
+function setupCopyEmail() {
+  const btn = document.querySelector("[data-copy-email]");
+  const toast = document.getElementById("copy-toast");
+  if (!btn || !toast) return;
+
+  let toastTimer;
+  btn.addEventListener("click", () => {
+    const email = btn.dataset.copyEmail;
+    navigator.clipboard.writeText(email).then(() => {
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+    }).catch(() => {
+      // Fallback for browsers without clipboard API
+      const ta = document.createElement("textarea");
+      ta.value = email;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+    });
+  });
+}
+
+/* ─── Scrollbar fade in/out ──────────────────────────────────────────────── */
+function setupScrollbar() {
+  let scrollTimer;
+  window.addEventListener("scroll", () => {
+    document.documentElement.classList.add("is-scrolling");
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      document.documentElement.classList.remove("is-scrolling");
+    }, 1200);
+  }, { passive: true });
+}
+
+/* ─── Render: nav bar ────────────────────────────────────────────────────── */
 function renderNav() {
   document.getElementById("header-slot").innerHTML = `
     <header class="site-header" id="site-header">
@@ -67,17 +96,40 @@ function renderHero() {
         <h2>${escapeHtml(siteConfig.role)}</h2>
         <p>${escapeHtml(siteConfig.intro)}</p>
         <div class="hero-meta">
-          <a href="mailto:${escapeHtml(siteConfig.email)}" class="pill">
-            <span>Email</span> ${escapeHtml(siteConfig.email)}
+          <button
+            class="pill pill-interactive"
+            data-copy-email="${escapeHtml(siteConfig.email)}"
+            aria-label="Copy email address"
+            title="Click to copy"
+          >
+            <span>Email</span>
+            ${escapeHtml(siteConfig.email)}
+            <svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="5" y="5" width="8" height="8" rx="1.5"/>
+              <path d="M3 11V3h8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <a
+            href="${escapeHtml(siteConfig.certUrl)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="pill pill-interactive"
+            title="Verify credential"
+          >
+            <span>Cert</span>
+            ${escapeHtml(siteConfig.certName)}
+            <svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M7 3H3.5A1.5 1.5 0 002 4.5v8A1.5 1.5 0 003.5 14h8A1.5 1.5 0 0013 12.5V9" stroke-linecap="round"/>
+              <path d="M9 2h5v5" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="14" y1="2" x2="8" y2="8" stroke-linecap="round"/>
+            </svg>
           </a>
-          <div class="pill"><span>Location</span> ${escapeHtml(siteConfig.location)}</div>
           <div class="pill"><span>Clearance</span> ${escapeHtml(siteConfig.clearance)}</div>
-          <a href="https://cp.certmetrics.com/CompTIA/en/public/verify/credential/E54S9W85M2F4QVWC" target="_blank" rel="noopener noreferrer" class="pill">
-            <span>Cert</span> CompTIA Security+
-          </a>
+          <div class="pill"><span>Location</span> ${escapeHtml(siteConfig.location)}</div>
         </div>
       </div>
     </section>
+    <div id="copy-toast" class="copy-toast" role="status" aria-live="polite">Email copied!</div>
   `;
 }
 
@@ -127,7 +179,9 @@ function renderSkills() {
   document.getElementById("skills-grid").innerHTML = skillsData.map(s => `
     <article class="card skill-card">
       <strong>${escapeHtml(s.title)}</strong>
-      <ul>${s.items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
+      <div class="skill-pills">
+        ${s.items.map(i => `<span class="skill-pill">${escapeHtml(i)}</span>`).join("")}
+      </div>
     </article>
   `).join("");
 }
@@ -153,7 +207,7 @@ function renderFooter() {
   `;
 }
 
-/* ─── Scroll spy (IntersectionObserver) ─────────────────────────────────── */
+/* ─── Scroll spy ─────────────────────────────────────────────────────────── */
 function setActiveNavLink(id) {
   document.querySelectorAll(".nav a[href^='#'], .nav-drawer a[href^='#']").forEach(a => {
     a.classList.toggle("active", a.getAttribute("href") === `#${id}`);
@@ -165,81 +219,26 @@ function setupScrollSpy() {
   const sections = sectionIds.map(id => document.getElementById(id)).filter(Boolean);
   if (!sections.length) return;
 
-  let suppressSpy = false;
-  let observer;
+  function getActiveId() {
+    const navH = document.querySelector(".header-inner")?.offsetHeight ?? 64;
+    const sectionMargin = navH + 24;
+    const maxScroll = document.body.scrollHeight - window.innerHeight;
 
-  function createObserver() {
-    if (observer) observer.disconnect();
+    if (window.scrollY >= maxScroll - 1) return sections[sections.length - 1].id;
 
-    const offset = getHeaderOffset();
-
-    observer = new IntersectionObserver((entries) => {
-      if (suppressSpy) return;
-
-      // Find the entry closest to the top that is intersecting
-      const visible = entries
-        .filter(e => e.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-
-      if (visible.length > 0) {
-        setActiveNavLink(visible[0].target.id);
-      }
-    }, {
-      root: null,
-
-      // Top band just below header, bottom trimmed so only one section dominates
-      rootMargin: `-${offset + 1}px 0px -70% 0px`,
-
-      threshold: 0
-    });
-
-    sections.forEach(section => observer.observe(section));
+    const reversed = [...sections].reverse();
+    const found = reversed.find(s =>
+      window.scrollY >= (s.getBoundingClientRect().top + window.scrollY) - sectionMargin
+    );
+    return found ? found.id : sections[0].id;
   }
 
-  function handleBottomEdge() {
-    const scrollY = window.scrollY;
-    const viewportH = window.innerHeight;
-    const docH = document.documentElement.scrollHeight;
+  function onScroll() { setActiveNavLink(getActiveId()); }
 
-    const nearBottom = scrollY + viewportH >= docH - 8;
-
-    if (nearBottom) {
-      const lastSection = sections[sections.length - 1];
-      setActiveNavLink(lastSection.id);
-    }
-  }
-
-  document.querySelectorAll(".nav a[href^='#'], .nav-drawer a[href^='#']").forEach(a => {
-    a.addEventListener("click", () => {
-      const id = a.getAttribute("href").slice(1);
-
-      setActiveNavLink(id);
-      suppressSpy = true;
-
-      const release = () => {
-        suppressSpy = false;
-        window.removeEventListener("wheel", release);
-        window.removeEventListener("touchstart", release);
-        window.removeEventListener("keydown", release);
-      };
-
-      window.addEventListener("wheel", release, { passive: true, once: true });
-      window.addEventListener("touchstart", release, { passive: true, once: true });
-      window.addEventListener("keydown", release, { once: true });
-
-      setTimeout(() => {
-        suppressSpy = false;
-      }, 400);
-    });
-  });
-
-  window.addEventListener("resize", () => {
-    updateNavHeight();
-    createObserver(); // recalc rootMargin
-  }, { passive: true });
-  window.addEventListener("scroll", handleBottomEdge, { passive: true });
-
-  createObserver();
+  window.addEventListener("scroll",    onScroll, { passive: true });
+  window.addEventListener("scrollend", onScroll, { passive: true });
+  window.addEventListener("resize", () => { updateNavHeight(); onScroll(); }, { passive: true });
+  onScroll();
 }
 
 /* ─── Init ───────────────────────────────────────────────────────────────── */
@@ -256,4 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
   updateNavHeight();
   setupMobileMenu();
   setupScrollSpy();
+  setupCopyEmail();
+  setupScrollbar();
 });

@@ -11,3 +11,4 @@ const skillsData = [
 { title: "Security and identity",
   items: ["Authentik SSO", "OAuth2", "mTLS", "CompTIA Security+"] },
 ];
+
