@@ -7,8 +7,8 @@ const siteConfig = {
   certName: "CompTIA Security+",
   certUrl: "https://cp.certmetrics.com/CompTIA/en/public/verify/credential/E54S9W85M2F4QVWC",
   intro:
-    "DevSecOps engineer with a TS/SCI clearance and an aerospace engineering background. I specialize in secure cloud infrastructure, identity management, and building internal platforms that reduce operational overhead at scale.",
-  about:
-    "I build infrastructure and internal tooling with a preference for solutions that reduce manual load and outlast the sprint that created them. My background in aerospace engineering shapes how I approach complex systems, starting with the whole before optimizing the parts. I'm drawn to work at the intersection of operations and software: identifying a gap, building something to fill it, and leaving the platform better than I found it.",
-  footerNote: "Built for clarity, not noise."
+    "Aerospace engineer working in DevSecOps. I build and integrate secure infrastructure for space and defense programs.",
+  about: 
+    "My background is in aerospace but I have always been drawn to the integration layer, the part where systems have to talk to each other and someone has to understand all of it. I gravitate toward hard problems and the kind of work where you spend weeks heads-down and come out the other side with something that actually runs. I care about building things that hold up, not just things that ship.",
+  footerNote: "\"Science and hard work can lick what appear to be insurmountable difficulties.\" — William Boeing"
 };
