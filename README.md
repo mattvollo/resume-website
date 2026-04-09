@@ -1,6 +1,6 @@
 # Matthew Vollo Resume Site
 
-A modular static resume site for Porkbun static hosting.
+Personal resume site. Built with vanilla HTML, CSS, and JavaScript
 
 ## Structure
 
@@ -13,7 +13,7 @@ A modular static resume site for Porkbun static hosting.
 - `data/skills.js` - skills blocks
 - `data/education.js` - education entry
 - `components/` - placeholder folder reserved for future HTML partials
-- `assets/img/` - reserved for images or icons
+- `assets/img/` - favicon and images
 
 ## Editing content
 
@@ -26,18 +26,9 @@ For the easiest updates, edit only the files in `data/` and `assets/js/main.js`.
 3. Update `data/skills.js` for skill categories.
 4. Update `data/site.js` for header text, email, or footer text.
 
-## Deployment
+## Local preview
 
-### Porkbun Static Hosting
-1. Create or select your Porkbun static hosting site.
-2. Connect the GitHub repository through Porkbun GitHub Connect.
-3. Set the publish branch.
-4. Push changes to that branch to deploy automatically.
-
-### Local preview
-Because the site uses `fetch()` for modular content loading, preview it through a local web server instead of opening `index.html` directly from the filesystem.
-
-Examples:
+The site must be served over HTTP rather than opened directly from the filesystem.
 
 ```bash
 python3 -m http.server 8000
@@ -45,8 +36,6 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
-## Notes
+## Deployment
 
-- The bottom contact section was removed on purpose to avoid redundancy.
-- Anchor links account for the sticky navigation bar.
-- The wording avoids any "actively job hunting" language.
+Hosted on GitHub Pages. Push to `main` to deploy.
